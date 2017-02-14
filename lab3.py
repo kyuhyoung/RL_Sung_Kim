@@ -1,5 +1,6 @@
 import gym
 import numpy as np
+# Following is commented out due to the conflict between pyplot and cv2.imshow
 '''
 import matplotlib
 matplotlib.use('GTKAgg')
@@ -15,7 +16,7 @@ LEFT, DOWN, RIGHT, UP = 0, 1, 2, 3
 side_row, side_col = 100, 100
 fontFace = cv2.FONT_HERSHEY_COMPLEX
 fontScaleQ = 0.006 * min(side_row, side_col)
-fontScaleEpisode = 0.007 * min(side_row, side_col)
+fontScaleEpisode = 0.006 * min(side_row, side_col)
 thicTextQ = int(fontScaleQ)
 tipSize = 0.15 * min(side_row, side_col)
 row_text = int(side_row * 0.5)
@@ -43,7 +44,7 @@ def draw_q(im, x, y, i, q):
 
 def draw_reward(im, i_epi, rew):
     h, w = im.shape
-    text = '# eipsode : ' + str(i_epi) + '  rewards : ' + str(rew)
+    text = 'eipsode : ' + str(i_epi) + ' / ' + str(num_episodes) + '   reward : ' + str(rew)
     x_txt = int(w * 0.01)
     y_txt = int(h - row_text * 0.4)
     cv2.putText(im, text, (x_txt, y_txt), fontFace, fontScaleEpisode, 0)
@@ -182,5 +183,6 @@ print('Success rate : ', str(sum(rList)/num_episodes))
 print('Final Q-Table values')
 print('Left Down Right Up')
 print(Q)
+# Following is commented out due to the conflict between pyplot and cv2.imshow
 #plt.bar(range(len(rList)), rList, color='blue')
 #plt.show()
