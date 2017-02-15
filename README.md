@@ -1,2 +1,2 @@
 # RL_Sung_Kim
-Reinforcement Learning course provided by Prof. Sung Kim
+Hands-on of reinforcement learning lecture provided by Prof. Sung Kim
