@@ -22,6 +22,7 @@ tipSize = 0.15 * min(side_row, side_col)
 row_text = int(side_row * 0.5)
 x_shift, y_shift = side_col * 0.04, side_row * 0.04
 showTime = 50
+num_episodes = 200
 
 
 def draw_q(im, x, y, i, q):
@@ -42,9 +43,10 @@ def draw_q(im, x, y, i, q):
     cv2.putText(im, text, (x_txt, y_txt), fontFace, fontScaleQ, 0, thicTextQ)
     return im
 
-def draw_reward(im, i_epi, rew):
+def draw_reward(im, i_epi, rew, rList):
+    rate_success = str(sum(rList) / num_episodes)
     h, w = im.shape
-    text = 'eipsode : ' + str(i_epi) + ' / ' + str(num_episodes) + '   reward : ' + str(rew)
+    text = 'epi. : ' + str(i_epi) + '/' + str(num_episodes) + '  rew. : ' + str(rew) + '  s.r. : ' + str(rate_success)
     x_txt = int(w * 0.01)
     y_txt = int(h - row_text * 0.4)
     cv2.putText(im, text, (x_txt, y_txt), fontFace, fontScaleEpisode, 0)
@@ -53,7 +55,7 @@ def draw_reward(im, i_epi, rew):
     #a = 0
     return im
 
-def draw_initial(n_row, n_col, Q, i_epi, rew, li_hole):
+def draw_initial(n_row, n_col, Q, i_epi, rew, rList, li_hole):
     n_state, n_action = Q.shape
     #nn = Q.shape
     if n_row * n_col != n_state:
@@ -83,7 +85,7 @@ def draw_initial(n_row, n_col, Q, i_epi, rew, li_hole):
                     im_lake = draw_q(im_lake, x_center, y_center, i_action, q)
             if i_state in li_hole:
                 im_lake = draw_hole(im_lake, x_left, x_right, y_up, y_down)
-    im_lake = draw_reward(im_lake, i_epi, rew)
+    im_lake = draw_reward(im_lake, i_epi, rew, rList)
     #cv2.imshow('lake', im_lake)
     #cv2.waitKey(showTime)
     return im_lake
@@ -154,7 +156,6 @@ register(
 env = gym.make("FrozenLake-v3")
 
 Q = np.zeros([env.observation_space.n, env.action_space.n])
-num_episodes = 200
 
 li_hole = []
 rList = []
@@ -163,7 +164,7 @@ for i in range(num_episodes):
     state = env.reset()
     rAll = 0
     done = False
-    im_lake = draw_initial(4, 4, Q, i - 1, r_all_pre, li_hole)
+    im_lake = draw_initial(4, 4, Q, i - 1, r_all_pre, rList, li_hole)
     while not done:
         action = rargmax(Q[state, :])
         new_state, reward, done, _ = env.step(action)
