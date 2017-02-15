@@ -119,7 +119,7 @@ def draw_hole(im, x_l, x_r, y_u, y_d):
     cv2.line(im, (x_l, y_d), (x_r, y_u), 0, 2)
     return im
 
-def display_path(im, state, new_state, n_col, reward, done):
+def draw_path(im, state, new_state, n_col, reward, done):
     c_pre = state % n_col
     r_pre = (state - c_pre) / n_col
     x_l_pre = c_pre * side_col
@@ -169,7 +169,7 @@ for i in range(num_episodes):
         new_state, reward, done, _ = env.step(action)
         Q[state, action] = reward + np.max(Q[new_state, :])
         rAll += reward
-        im_lake = display_path(im_lake, state, new_state, 4, reward, done)
+        im_lake = draw_path(im_lake, state, new_state, 4, reward, done)
         state = new_state
         if done and 0 == reward:
             if new_state not in li_hole:
