@@ -12,7 +12,8 @@ arrow_keys = {
     '\x1b[D': LEFT }
 
 env = gym.make("FrozenLake-v0")
-env._episode_started_at = 0
+#env._episode_started_at = 0
+env.reset()
 env.render()
 
 
