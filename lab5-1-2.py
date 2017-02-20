@@ -25,12 +25,14 @@ x_shift, y_shift = side_col * 0.04, side_row * 0.04
 showTime = 10
 num_episodes = 2000
 dis = .99
+learning_rate = .85
 n_slip = 0
 n_move = 0
 
 
-def draw_q(im, x, y, i, q):
-
+def draw_q(im, x, y, i, q, is_slip):
+    if 0.001 > q:
+        a = 0
     if UP == i or LEFT == i:
         a = 0
     y_offset, x_offset = side_row * 0.05, -side_col * 0.17
@@ -44,7 +46,11 @@ def draw_q(im, x, y, i, q):
         y_offset = side_row * 0.4
     x_txt, y_txt = int(x + x_offset), int(y + y_offset)
     text = '%1.2f' % (q)
-    cv2.putText(im, text, (x_txt, y_txt), fontFace, fontScaleQ, 0, thicTextQ)
+    if is_slip:
+        kolor = (0, 0, 255)
+    else:
+        kolor = (0, 0, 0)
+    cv2.putText(im, text, (x_txt, y_txt), fontFace, fontScaleQ, kolor, thicTextQ)
     return im
 
 def draw_reward(im, i_epi, rew, rList):
@@ -71,7 +77,7 @@ def checkQ(i_state):
         a = 0
 
 
-def draw_initial(n_row, n_col, Q, i_epi, rew, rList, li_hole):
+def draw_initial(n_row, n_col, Q, i_epi, rew, rList, li_hole, map_slip):
     n_state, n_action = Q.shape
     #nn = Q.shape
     if n_row * n_col != n_state:
@@ -98,8 +104,9 @@ def draw_initial(n_row, n_col, Q, i_epi, rew, rList, li_hole):
             for i_action in range(n_action):
                 q = Q[i_state, i_action]
                 if q:
-                    checkQ(i_state)
-                    im_lake = draw_q(im_lake, x_center, y_center, i_action, q)
+                    #checkQ(i_state)
+                    is_slip = 0 != map_slip[i_state, i_action]
+                    im_lake = draw_q(im_lake, x_center, y_center, i_action, q, is_slip)
             if i_state in li_hole:
                 im_lake = draw_hole(im_lake, x_left, x_right, y_up, y_down)
     im_lake = draw_reward(im_lake, i_epi, rew, rList)
@@ -200,9 +207,31 @@ def rargmax(vector):
     indices = np.nonzero(vector == m)[0]
     return pr.choice(indices)
 
+
+def update_slip_map(map_slip, q_old, Q, state, action, new_state):
+    q_new = Q[state, action]
+    is_Q_changed = q_old != q_new
+    if is_Q_changed:
+        if 0 == q_new:
+            map_slip[state, action] = 0
+        else:
+            if 0 == map_slip[state, action]:
+                is_slip = is_slipped(state, action, new_state)
+                if is_slip:
+                    map_slip[state, action] = 1
+
+    return map_slip
+
+def update_hole_list(li_hole, done, reward, new_state, t):
+    if done and 0 == reward and t < 100:
+        if new_state not in li_hole:
+            li_hole.append(new_state)
+    return li_hole
+
 env = gym.make("FrozenLake-v0")
 
 Q = np.zeros([env.observation_space.n, env.action_space.n])
+map_slip = np.zeros([env.observation_space.n, env.action_space.n])
 
 li_hole = []
 rList = []
@@ -211,24 +240,21 @@ for i in range(num_episodes):
     state = env.reset()
     rAll = 0
     done = False
-    im_lake = draw_initial(4, 4, Q, i - 1, r_all_pre, rList, li_hole)
+    im_lake = draw_initial(4, 4, Q, i - 1, r_all_pre, rList, li_hole, map_slip)
+    t = 1
     while not done:
         action = np.argmax(Q[state, :] + np.random.rand(1, env.action_space.n) / (i + 1))
         #action = np.argmax(Q[state, :] + np.random.randn(1, env.action_space.n) / (i + 1))
         new_state, reward, done, _ = env.step(action)
-        is_slip = is_slipped(state, action, new_state)
-        if reward:
-            checkQ(state)
-        q_pre = Q[state, action]
-        Q[state, action] = reward + dis * np.max(Q[new_state, :])
-        q_nex = Q[state, action]
-        is_Q_changed = q_pre != q_nex
+        q_old = Q[state, action]
+        #Q[state, action] = reward + dis * np.max(Q[new_state, :])
+        Q[state, action] = (1 - learning_rate) * Q[state, action] + learning_rate * (reward + dis * np.max(Q[new_state, :]))
+        map_slip = update_slip_map(map_slip, q_old, Q, state, action, new_state)
         rAll += reward
         im_lake = draw_path(im_lake, state, action, new_state, 4, reward, done)
+        li_hole = update_hole_list(li_hole, done, reward, new_state, t)
         state = new_state
-        if done and 0 == reward:
-            if new_state not in li_hole:
-                li_hole.append(new_state)
+        t += 1
         cv2.imshow('lake', im_lake)
         cv2.waitKey(showTime)
     rList.append(rAll)
